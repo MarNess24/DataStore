@@ -10,14 +10,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.datastore.ui.theme.DataStoreTheme
 import kotlinx.coroutines.launch
 
@@ -39,12 +45,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            DataStoreTheme {
+            val darkMode = remember { mutableStateOf( false ) }
+            DataStoreTheme ( darkTheme = darkMode.value ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Greeting()
+                    Greeting( darkMode = darkMode )
                 }
             }
         }
@@ -52,10 +59,15 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting() {
+fun Greeting ( darkMode: MutableState<Boolean> ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val dataStore = StoreUserMail(context)
+
+    val userMail = dataStore.getMail.collectAsState ( initial = "" )
+    val isDarkMode = dataStore.getDarkMode.collectAsState ( initial = false )
+
+    darkMode.value = isDarkMode.value
 
     Column (
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -63,7 +75,6 @@ fun Greeting() {
         modifier = Modifier.fillMaxSize()
     ) {
         var email by rememberSaveable { mutableStateOf ( "" ) }
-        val userMail = dataStore.getMail.collectAsState( initial = "" )
 
         TextField (
             value = email,
@@ -84,5 +95,23 @@ fun Greeting() {
         Spacer ( modifier = Modifier.height(16.dp) )
 
         Text ( text = userMail.value )
+
+        DarkMode ( darkMode = darkMode ) {
+            scope.launch {
+                dataStore.saveDarkMode(darkMode.value)
+            }
+        }
+    }
+}
+
+@Composable
+fun DarkMode ( darkMode: MutableState<Boolean>, onDarkModeToggle: () -> Unit ) {
+    Button ( onClick = {
+        darkMode.value = !darkMode.value
+        onDarkModeToggle()
+    } ) {
+        Icon ( imageVector = Icons.Default.Star, contentDescription = "DarkMode" )
+        //Spacer ( modifier = Modifier.width ( 16.dp ) )
+        Text ( text = "Dark Mode", fontSize = 15.sp )
     }
 }
